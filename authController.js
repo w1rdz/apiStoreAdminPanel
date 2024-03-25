@@ -14,24 +14,17 @@ const generateAccessToken = (id, roles) => {
 class authController {
     async addUser(req, res) {
         try {
-            const { username, email, password,roles} = req.body;
-            const candidate = await User.findOne({ username, email });
+            const {username, email,role, password} = req.body;
+            const candidate = await User.findOne({username, email });
             if (candidate) {
-                return res.status(400).json({ message: "пользователь уже зарегистрирован" });
+                return res.status(400).json({ message: "Bad Request",code:400 });
             }
-            if(!roles){
-                const userRole = new Role({ value:"USER" });
-                const user = new User({ username, email, password, roles: [userRole.value] });
-                user.save()
-                return res.status(201).json({ message: "User created successfully" });
-            }
-            const userRole = new Role({ value:roles });
-            const user = new User({ username, email, password, roles: [userRole.value] });
+            const user = new User({username, email,role, password,});
             await user.save();
-            res.status(201).json({ message: "User created successfully" });
+            return res.status(201).json({ message: "User created successfully" });
         } catch (error) {
             console.log(error);
-            res.status(500).json({ message: "Failed to create user" });
+            res.status(400).json({ message: "Bad Request",code:400});
         }
     }
 
@@ -39,17 +32,11 @@ class authController {
         try {
             const { username, password } = req.body;
             const user = await User.findOne({ username });
-            if (!user) {
-                return res.status(400).json({ message: `пользователь с именем ${username} не найден` });
-            }
-            if (user.password !== password) {
-                return res.status(400).json({ message: "неверный пароль" });
-            }
-            const token = generateAccessToken(user._id, user.roles);
+            const token = generateAccessToken(user._id);
             return res.json({ token });
         } catch (error) {
             console.log(error);
-            res.status(400).json({ message: "Failed to login" });
+            res.status(400).json({ message: "Failed to login",code:400});
         }
     }
 
@@ -59,37 +46,36 @@ class authController {
             res.json(users);
         } catch (error) {
             console.log(error);
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403 });
         }
     }
 
-    async delUser(req,res){
+    async delUser(req, res) {
         try {
             const userId = req.params.id;
-            const user = await User.deleteOne({ _id: userId });;
+            const user = await User.findByIdAndDelete(userId);
             if (!user) {
-                return res.status(404).json({ message: "Пользователь не найден" });
+                return res.status(404).json({ message: "Forbidden",code:404 });
             }
-            res.status(400).json({message:"пользователь успешно удален"})
+            return res.status(204).json({ message: "User deleted successfully" });
         } catch (error) {
             console.log(error);
-            res.status(500).json({ message: "Ошибка сервера при удалении пользователя" });
+            return res.status(403).json({ message: "Forbidden" ,code:403});
         }
     }
 
     async resPass(req,res){
         try {
             const userId = req.params.id;
-            const newPassword = req.body.newPassword;
-            const user = await User.findByIdAndUpdate(userId, { password: newPassword });
-    
+            const {password} = req.body;
+            const user = await User.findByIdAndUpdate(userId, { password: password });
             if (!user) {
-                return res.status(404).json({ message: "Пользователь не найден" });
+                return res.status(400).json({ message: "Bad Request",code:400 });
             }
-            res.json({ message: "Пароль пользователя успешно обновлен" });
+            res.json({ message: "Password reset successful" });
         } catch (error) {
             console.log(error);
-            res.status(500).json({ message: "Ошибка сервера при обновлении пароля пользователя" });
+            res.status(403).json({ message: "Forbidden" ,code:403});
         }
     }
 
@@ -99,7 +85,7 @@ class authController {
             res.json(product);
         } catch (error) {
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403 });
         }
     }
 
@@ -108,56 +94,56 @@ class authController {
             const {name,description,price,category,image_url} = req.body;
             const newProduct = new Product({name,description,price,category,image_url})
             if(!newProduct){
-                return res.status(400).json({message:"ошибка при добавлении продукта"})
+                return res.status(400).json({message:"Bad Request",code:400})
             }
-            res.status(200).json({message:"продукт успешно добавлен"})
+            res.status(201).json({message:"Product created successfully"})
             await newProduct.save()
         }catch(error){
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            return res.status(400).json({message:"Bad Request",code:400})
         }
     }
 
     async getOneProduct(req,res) {
         try {
             const productId = req.params.id;
-            const product = await Product.findOne({_id:productId})
+            const product = await Product.findById(productId)
             if(!product){
-                res.status(400).json({message:"продукт не найден"})
+                res.status(403).json({message:"Forbidden",code:403})
             }
             res.json({product})
         } catch (error) {
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({message:"Forbidden",code:403})
         }
     }
 
     async resProduct(req,res) {
         try {
             const productId = req.params.id;
-            const {newName,newDescription,newPrice,newCategory,newImage_url} = req.body;
-            const resProduct = await Product.findByIdAndUpdate(productId,{name:newName,description:newDescription,price:newPrice,category:newCategory,image_url:newImage_url})
+            const {name,description,price,category,image_url} = req.body;
+            const resProduct = await Product.findByIdAndUpdate(productId,{name:name,description:description,price:price,category:category,image_url:image_url})
             if(!resProduct) {
-                res.status(400).json({message:"продукт не найден"})
+                res.status(400).json({message:"Bad Request",code:400})
             }
-            res.status(200).json({message:"продукт успешно изменен"})
+            res.status(200).json({message:"Product updated successfully",code:200})
         } catch (error) {
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403 });
         }
     }
 
     async delProduct(req,res) {
         try {
         const productId = req.params.id;
-        const delProduct = await Product.deleteOne({_id:productId})
+        const delProduct = await Product.findByIdAndDelete(productId)
         if(!delProduct){
-            res.status(400).json({message:"продукт не найден"})
+            res.status(403).json({ message: "Forbidden",code:403 })
         }
-        res.status(200).json({message:"продукт успешно удален"})
+        res.status(204).json({message:"Product deleted successfully",code:204})
         } catch (error) {
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403 });
         }
     }
 
@@ -167,7 +153,7 @@ class authController {
             res.json({getOrder})
         } catch (error) {
             console.log(error)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403});
         }
 
     }
@@ -175,15 +161,15 @@ class authController {
     async updateOrder(req,res){
        try {
         const orderId = req.params.id;
-        const {newCustomer_name,newTotal_amount,newStatus} = req.body;
-        const getOrder = await Order.findOneAndUpdate(orderId,{customer_name:newCustomer_name,total_amount:newTotal_amount,status:newStatus})
+        const {status} = req.body;
+        const getOrder = await Order.findByIdAndUpdate(orderId,{status:status})
         if(!getOrder){
-            res.status(400).json({message:"ордер не найден"})
+            res.status(400).json({message:"Bad request",code:400})
         }
-        res.json({getOrder})
+        res.status(200).json({message:"Order status updated successfully",code:200})
        } catch (error) {
         console.log(error)
-        res.status(500).json({ message: "Internal server error" });
+        res.status(403).json({ message: "Forbidden",code:403});
        }
         
     }
@@ -199,17 +185,30 @@ class authController {
                     }
                 }
             ]);
+            
             const orderStatusCounts = await Order.aggregate([
                 {
                     $group: {
                         _id: "$status",
                         count: { $sum: 1 }
                     }
-                }
+                },
+            ]);
+            const orderCategoryCounts = await Order.aggregate([
+                {
+                    $group: {
+                        _id: "$category",
+                        count: { $sum: 1 }
+                    }
+                },
             ]);
             const statistics = {
                 total_sales: totalSales,
                 total_sales_amount: totalSalesAmount.length > 0 ? totalSalesAmount[0].totalAmount : 0,
+                sales_by_category: orderCategoryCounts.reduce((acc, curr) => {
+                    acc[curr._id] = curr.count;
+                    return acc;
+                }, {}),
                 order_status_counts: orderStatusCounts.reduce((acc, curr) => {
                     acc[curr._id] = curr.count;
                     return acc;
@@ -219,7 +218,7 @@ class authController {
             res.json(statistics);
         } catch (error) {
             console.log(erorr)
-            res.status(500).json({ message: "Internal server error" });
+            res.status(403).json({ message: "Forbidden",code:403 });
         }
     }
 

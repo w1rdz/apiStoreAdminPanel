@@ -2,16 +2,20 @@ const mongoose = require("mongoose");
 const { Schema,model } = mongoose;
 const {Role} = require("./Role");
 
-const userSchema = new Schema({
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    roles: [{ type:String, ref: 'Role' }]
+// Схема пользователя
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    email: { type: String, required: true },
+    password:{ type: String, required: true },
+    role: { type: String, required: true,default:"USER"},
+    active: { type: Boolean, default: true }
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', UserSchema);
 
+// Схема продукта
 const ProductSchema = new mongoose.Schema({
+    id: { type: Number, required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
@@ -21,7 +25,9 @@ const ProductSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', ProductSchema);
 
+// Схема заказа
 const OrderSchema = new mongoose.Schema({
+    id: { type: Number, required: true },
     customer_name: { type: String, required: true },
     total_amount: { type: Number, required: true },
     status: { type: String, required: true }
